@@ -3,7 +3,9 @@ import 'package:my_diary_app/new_diary_screen.dart';
 import 'package:my_diary_app/diary_detail_screen.dart';
 import 'package:my_diary_app/models/diary.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:intl/intl.dart'; 
 import 'dart:convert';
+
 
 void main() {
   runApp(const MyApp());
@@ -94,9 +96,12 @@ class _MyDiaryHomePageState extends State<MyDiaryHomePage> {
               itemCount: _diaries.length,
               itemBuilder: (context, index) {
                 final diary = _diaries[index];
+                // ★整形用のフォーマッタを定義★
+                final dateFormatter = DateFormat('yyyy年MM月dd日 HH:mm');
+                final formattedDate = dateFormatter.format(diary.date);                
                 return ListTile(
                   title: Text(diary.title),
-                  subtitle: Text(diary.date.toString()),
+                  subtitle: Text(formattedDate),
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
