@@ -97,7 +97,7 @@ class _MyDiaryHomePageState extends State<MyDiaryHomePage> {
               itemBuilder: (context, index) {
                 final diary = _diaries[index];
                 // ★整形用のフォーマッタを定義★
-                final dateFormatter = DateFormat('yyyy年MM月dd日 HH:mm');
+                final dateFormatter = DateFormat('yyyy年MM月dd日');
                 final formattedDate = dateFormatter.format(diary.date);                
                 return ListTile(
                   title: Text(diary.title),
