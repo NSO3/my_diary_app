@@ -53,6 +53,8 @@ class _MyDiaryHomePageState extends State<MyDiaryHomePage> {
       final List<dynamic> decodedList = jsonDecode(diariesJson);
       setState(() {
         _diaries = decodedList.map((item) => Diary.fromJson(item)).toList();
+        // b.date（後の日付）と a.date（前の日付）を比較することで、降順（新しい順）になる
+        _diaries.sort((a, b) => b.date.compareTo(a.date)); 
       });
     }
   }
