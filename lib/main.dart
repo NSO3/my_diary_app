@@ -4,10 +4,28 @@ import 'package:my_diary_app/diary_detail_screen.dart';
 import 'package:my_diary_app/models/diary.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart'; 
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
 
 
-void main() {
+
+void main() async  {
+
+  // runAppの前にFlutterウィジェットバインディングが初期化されていることを確認
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    // ★ここを修正します★: ファイルが見つからない場合に備え、相対パスを明示的に指定
+    // 'asset'フォルダにあるわけではないので、通常はfileName: ".env"のままでOKですが、
+    // ここでは、読み込み失敗時のログを追加し、確実に処理が停止しないようにします。
+    await dotenv.load(fileName: ".env"); 
+    
+  } catch (e) {
+    // ファイルが見つからなかった場合、エラーを出力し、キーがない状態で続行する
+    // これにより、アプリの起動は失敗しなくなります
+    print("WARNING: .env file not found or failed to load: $e");
+  }
+
   runApp(const MyApp());
 }
 

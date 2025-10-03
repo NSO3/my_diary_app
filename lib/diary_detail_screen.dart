@@ -1,48 +1,87 @@
+// lib/diary_detail_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:my_diary_app/models/diary.dart';
 import 'package:my_diary_app/new_diary_screen.dart';
+import 'package:my_diary_app/gemini_service.dart'; // ★追加
+import 'package:intl/intl.dart'; // 日付整形のために追加
 
 // 削除処理を受け取るためのコールバック関数型を定義
 typedef DeleteCallback = void Function(int index);
 
-class DiaryDetailScreen extends StatelessWidget {
-  // 表示する日記データを受け取るためのプロパティ
+// StatelessWidgetからStatefulWidgetに変更
+class DiaryDetailScreen extends StatefulWidget {
   final Diary diary;
-  // リストの何番目の日記かを識別するためのインデックス
-  final int index; 
-  // --- 削除関数を受け取るプロパティを追加 ---
+  final int index;
   final DeleteCallback onDelete; 
 
   const DiaryDetailScreen({
     super.key, 
     required this.diary,
     required this.index,
-    required this.onDelete, 
+    required this.onDelete,
   });
 
   @override
-  Widget build(BuildContext context) {
-    // 日付を「YYYY年MM月DD日」形式に整形するヘルパー関数
-    String formatDate(DateTime date) {
-      return '${date.year}年${date.month.toString().padLeft(2, '0')}月${date.day.toString().padLeft(2, '0')}日';
-    }
+  State<DiaryDetailScreen> createState() => _DiaryDetailScreenState();
+}
 
+class _DiaryDetailScreenState extends State<DiaryDetailScreen> {
+  // AIコメントの状態を管理する変数
+  String _geminiComment = 'AIコメントを読み込み中...';
+  // Geminiサービスを初期化
+  final GeminiService _geminiService = GeminiService();
+
+  @override
+  void initState() {
+    super.initState();
+    // 画面がロードされたらすぐにGeminiコメントの生成を開始
+    _fetchGeminiComment();
+  }
+
+  // Gemini APIを呼び出し、コメントを取得する非同期関数
+  Future<void> _fetchGeminiComment() async {
+    try {
+      final comment = await _geminiService.generateComment(
+        widget.diary.title,
+        widget.diary.content,
+      );
+      // 取得後、setStateで画面を更新し、コメントを表示
+      setState(() {
+        _geminiComment = comment;
+      });
+    } catch (e) {
+      // エラーが発生した場合
+      setState(() {
+        _geminiComment = 'コメントの取得に失敗しました: $e';
+      });
+    }
+  }
+
+  // 日付を整形するヘルパー関数
+  String _formatDate(DateTime date) {
+    return DateFormat('yyyy年MM月dd日 (HH:mm)').format(date);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(formatDate(diary.date)),
+        title: Text(_formatDate(widget.diary.date)), // 時刻も含む詳細な日付
         actions: [
+          // 編集ボタン
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => NewDiaryScreen(
-                    existingDiary: diary, // 既存の日記データを渡す
-                    index: index,         // 編集対象のインデックスを渡す
+                    existingDiary: widget.diary, 
+                    index: widget.index,         
                   ),
                 ),
               ).then((_) {
-                // 編集画面から戻ってきたときに、詳細画面を閉じ、一覧画面を再読み込みする
+                // 編集画面から戻ってきたら詳細画面を閉じ、一覧画面へ戻る
                 Navigator.of(context).pop();
               });
             },
@@ -51,7 +90,6 @@ class DiaryDetailScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed: () {
-              // 削除確認のダイアログを表示
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -66,9 +104,9 @@ class DiaryDetailScreen extends StatelessWidget {
                       TextButton(
                         child: const Text('削除'),
                         onPressed: () {
-                          Navigator.of(context).pop(); // ダイアログを閉じる
-                          onDelete(index);            // 渡された削除関数を実行
-                          Navigator.of(context).pop();  // 詳細画面を閉じて一覧に戻る
+                          Navigator.of(context).pop(); 
+                          widget.onDelete(widget.index); 
+                          Navigator.of(context).pop();  
                         },
                       ),
                     ],
@@ -84,18 +122,52 @@ class DiaryDetailScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // タイトル
+            // AIコメント表示エリア
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.deepPurple.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: Colors.deepPurple),
+                      SizedBox(width: 8),
+                      Text(
+                        'Geminiからのコメント',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.deepPurple,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  // コメントがロードされるまでローディング表示
+                  _geminiComment == 'AIコメントを読み込み中...'
+                      ? Center(child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text(_geminiComment),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            
+            // 日記のタイトル
             Text(
-              diary.title,
+              widget.diary.title,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 20),
-            // 本文
+            
+            // 日記の本文
             Text(
-              diary.content,
+              widget.diary.content,
               style: const TextStyle(fontSize: 16),
             ),
           ],
